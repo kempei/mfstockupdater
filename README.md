@@ -1,4 +1,4 @@
-# MoneyForward RSU updater
+# MoneyForward Stock updater
 ## What's This?
 MoneyForwardで米ドル建て外国株式の現物資産を前取引日の終値と現在の為替でアップデートします。
 
