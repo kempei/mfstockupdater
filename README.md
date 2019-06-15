@@ -4,15 +4,15 @@ MoneyForwardで米ドル建て外国株式の現物資産を前取引日の終�
 
 ## Preparation
 ### MoneyForward
-次のフォーマットで株式(現物)の資産を手動追加しておきます。
+シャープ(#)で始まる次のフォーマットで株式(現物)の資産を手動追加しておきます。
 
 ```
-<ハイフン以外の任意の文字列>-<tick>-<株式数>
-例: MYSTOCK201902-AAPL-1
+#<ハイフン以外の任意の文字列>-<tick>-<株式数>
+例: #MYSTOCK201902-AAPL-1
 ```
 
 ### Alphavantage
-株価取得のため、AlphavantageのAPIを使っています。以下からAlphavantageのAPIキーを取得しておきます。
+株価/為替取得のため、AlphavantageのAPIを使っています。以下からご自身のAlphavantageのAPIキーを取得しておきます。
 - https://www.alphavantage.co/support/#api-key
 
 ### Environment Variables
