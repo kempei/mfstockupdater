@@ -9,10 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 
-from alphavantage.price_history import (
-  AdjustedPriceHistory, get_results, PriceHistory, IntradayPriceHistory,
-  filter_dividends
-)
+from alphavantage.price_history import PriceHistory
 
 import requests
 
