@@ -58,11 +58,11 @@ class MoneyForward():
         for i in range(len(elements)):
             tds = elements[i].find_elements_by_tag_name('td')
             name = tds[1].text
-            if name[0:3] == "RSU":
-                rsuinfo = name.split('-')
-                stock_price = self.stock_price(rsuinfo[1])
-                stock_count = int(rsuinfo[2])
-                logger.info(rsuinfo[0] + ": " + rsuinfo[1] + ' is ' + str(stock_price) + "USD (" + str(int(usdrate * stock_price)) + " JPY) x " + str(stock_count))
+            if name[0:1] == "#":
+                entry = name.split('-')
+                stock_price = self.stock_price(entry[1])
+                stock_count = int(entry[2])
+                logger.info(entry[0] + ": " + entry[1] + ' is ' + str(stock_price) + "USD (" + str(int(usdrate * stock_price)) + " JPY) x " + str(stock_count))
                 tds[11].find_element_by_tag_name('img').click()
                 det_value = tds[11].find_element_by_id('user_asset_det_value')
                 commit = tds[11].find_element_by_name('commit')
@@ -70,7 +70,7 @@ class MoneyForward():
                 self.send_to_element_direct(det_value, str(int(usdrate * stock_price) * stock_count))
                 commit.click()
                 time.sleep(1)
-                logger.info(rsuinfo[0] + " is updated.")
+                logger.info(entry[0] + " is updated.")
                 elements = self.driver.find_elements_by_xpath('//*[@id="portfolio_det_eq"]/table/tbody/tr') # avoid stale error
 
     def stock_price(self, tick):
