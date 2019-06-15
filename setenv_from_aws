@@ -1,0 +1,5 @@
+export DOCKERENV="$DOCKERENV \
+-e MF_ID=$(aws ssm get-parameters --name mf_id --with-decryption | jq -r '.Parameters[].Value') \
+-e MF_PASS=$(aws ssm get-parameters --name mf_pass --with-decryption | jq -r '.Parameters[].Value') \
+-e ALPHA_VANTAGE_API_KEY=$(aws ssm get-parameters --name alpha_vantage_api_key --with-decryption | jq -r '.Parameters[].Value') \
+"
