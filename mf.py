@@ -9,8 +9,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 
-from alphavantage.price_history import PriceHistory
-
 import requests
 
 import os, time, datetime
@@ -33,6 +31,9 @@ class MoneyForward():
         options.add_experimental_option("prefs", {'profile.managed_default_content_settings.images':2})
         self.driver = webdriver.Chrome(chrome_options=options)
         self.wait = WebDriverWait(self.driver, 5)
+        if not 'ALPHAVANTAGE_API_KEY' in os.environ:
+            raise ValueError("env ALPHAVANTAGE_API_KEY is not found.")
+        self.alphavantage_apikey = os.environ['ALPHAVANTAGE_API_KEY']
 
     def login(self):
         self.driver.execute_script("window.open()")
@@ -74,18 +75,18 @@ class MoneyForward():
                 elements = self.driver.find_elements_by_xpath('//*[@id="portfolio_det_eq"]/table/tbody/tr') # avoid stale error
 
     def stock_price(self, tick):
-        history = PriceHistory(period='D', output_size='compact')
-        results = history.get(tick)
-        return results.records[-1]['close']
-
-    def usdrate(self):
-        r = requests.get('https://www.gaitameonline.com/rateaj/getrate')
+        r = requests.get(f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={tick}&apikey={self.alphavantage_apikey}')
         if r.status_code != 200:
             raise ConnectionRefusedError()
         data = r.json()
-        for quote in data['quotes']:
-            if quote['currencyPairCode'] == 'USDJPY':
-                return float(quote['open'])
+        return float(data['Global Quote']['05. price'])
+
+    def usdrate(self):
+        r = requests.get(f'https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=JPY&apikey={self.alphavantage_apikey}')
+        if r.status_code != 200:
+            raise ConnectionRefusedError()
+        data = r.json()
+        return float(data['Realtime Currency Exchange Rate']['5. Exchange Rate'])
 
     def close(self):
         try:
