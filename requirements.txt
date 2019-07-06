@@ -1,0 +1,9 @@
+# Basic
+logzero
+requests
+
+# Selenium
+selenium
+
+# And you have to download chromedriver and set PATH
+# http://chromedriver.chromium.org/downloads
