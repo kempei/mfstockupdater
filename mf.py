@@ -30,7 +30,7 @@ class MoneyForward():
         options.add_argument("--homedir=/tmp")
         options.add_argument('--user-agent=Mozilla/5.0')
         options.add_experimental_option("prefs", {'profile.managed_default_content_settings.images':2})
-        self.driver = webdriver.Chrome(chrome_options=options)
+        self.driver = webdriver.Chrome(options=options)
         self.wait = WebDriverWait(self.driver, 5)
         if not 'ALPHAVANTAGE_API_KEY' in os.environ:
             raise ValueError("env ALPHAVANTAGE_API_KEY is not found.")
