@@ -1,7 +1,7 @@
 FROM joyzoursky/python-chromedriver:3.7-alpine3.8-selenium
 
 RUN pip install --upgrade pip; \
-    pip install logzero requests; \
+    pip install logzero requests pytz; \
     find /usr/local -depth \
 		\( \
 			\( -type d -a \( -name test -o -name tests \) \) \

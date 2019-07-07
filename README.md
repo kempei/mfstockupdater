@@ -21,5 +21,20 @@ mf.pyでは以下の環境変数を用います。
 - MF_PASS: MoneyForwardのパスワード
 - ALPHAVANTAGE_API_KEY: AlphavantageのAPIKEY
 
+### Two Step Verification
+MoneyForwardで二段階認証を有効にしている場合には、以下のオプションを有効にします。
+
+#### Gmail
+MoneyForwardの登録メールアドレスから、二段階認証用の確認メールを自身のGmailアカウントに転送するように設定しておきます。他の用途で使っていないGmailアカウントを使用することをお勧めします。
+- MoneyForwardの登録メールアドレスがGmailの場合の設定例はこちら： https://support.google.com/mail/answer/10957
+
+転送設定をしたGmailアカウントにおいて、アプリケーション用のパスワードを取得しておきます。
+- https://support.google.com/accounts/answer/185833
+
+以下の環境変数を設定します。
+- MF_TWO_STEP_VERIFICATION: "Gmail"と指定
+- MF_TWO_STEP_VERIFICATION_GMAIL_ACCOUNT: 転送先のGmailアカウント（メールアドレス）
+- MF_TWO_STEP_VERIFICATION_GMAIL_APP_PASS: 転送先のGmailアカウントで発行したアプリケーション用のパスワード
+
 ## Execution
 普通にDockerfileを元に作成されたDockerを実行すればOKです。
