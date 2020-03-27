@@ -24,7 +24,15 @@ mf.pyでは以下の環境変数を用います。
 ### Two Step Verification
 MoneyForwardで二段階認証を有効にしている場合には、以下のオプションを有効にします。
 
-#### Gmail
+#### Time-based OTPs
+MoneyForward IDで「[二段階認証の設定](https://id.moneyforward.com/two_factor_auth_setting)」を行います。
+二段階認証を有効にする際に表示される20桁 (4桁×5) のシークレットキーを控えておきます。
+
+以下の環境変数を設定します。
+- MF_TWO_STEP_VERIFICATION: "TOTP"と指定
+- MF_TWO_STEP_VERIFICATION_TOTP_SECRET_KEY: 控えておいたTime-based OTPsのシークレットキー
+
+#### Gmail （メールでの二段階認証は古いタイプであり、現在は利用できません)
 MoneyForwardの登録メールアドレスから、二段階認証用の確認メールを自身のGmailアカウントに転送するように設定しておきます。他の用途で使っていないGmailアカウントを使用することをお勧めします。
 - MoneyForwardの登録メールアドレスがGmailの場合の設定例はこちら： https://support.google.com/mail/answer/10957
 

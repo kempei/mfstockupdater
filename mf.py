@@ -12,7 +12,7 @@ from selenium.webdriver.support import expected_conditions as ec
 import requests
 
 import os, time, datetime
-import imaplib, email, re, pytz
+import imaplib, email, re, pyotp, pytz
 
 class MoneyForward():
     def init(self):
@@ -44,20 +44,40 @@ class MoneyForward():
         mf_id = os.environ['MF_ID']
         mf_pass = os.environ['MF_PASS']
         
-        self.driver.get('https://moneyforward.com/users/sign_in')
+        self.driver.get('https://moneyforward.com/')
         self.wait.until(ec.presence_of_all_elements_located)
-        
+        self.driver.find_element_by_xpath('//*[@href="/users/sign_in"]').click()
+        self.wait.until(ec.presence_of_all_elements_located)
+        self.driver.get(self.driver.current_url.replace('/sign_in/new', '/sign_in/email'))
+        self.wait.until(ec.presence_of_all_elements_located)
+
         login_time = datetime.datetime.now(pytz.timezone('Asia/Tokyo'))
-        self.send_to_element('//*[@id="sign_in_session_service_email"]', mf_id)
-        self.send_to_element('//*[@id="sign_in_session_service_password"]', mf_pass)
-        self.driver.find_element_by_xpath('//*[@id="login-btn-sumit"]').click()
+        self.send_to_element('//*[@type="email"]', mf_id)
+        self.driver.find_element_by_xpath('//*[@type="submit"]').click()
         self.wait.until(ec.presence_of_all_elements_located)
+        self.send_to_element('//*[@type="password"]', mf_pass)
+        self.driver.find_element_by_xpath('//*[@type="submit"]').click()
+        self.wait.until(ec.presence_of_all_elements_located)
+
         if self.driver.find_elements_by_id("home"):
             logger.info("successfully logged in.")
-        elif self.driver.find_elements_by_id("page-two-step-verifications"):            
-            logger.info("two step verification is enabled.")
-            if not 'MF_TWO_STEP_VERIFICATION' in os.environ:
-                raise ValueError("env MF_TWO_STEP_VERIFICATION is not found.")
+        # New type of MoneyForward two step verifications
+        elif self.driver.current_url.startswith('https://id.moneyforward.com/two_factor_auth/totp'):
+            self.confirm_two_step_verification_param()
+            if os.environ['MF_TWO_STEP_VERIFICATION'].lower() == "totp":
+                confirmation_code = self.get_confirmation_code_from_totp()
+            else:
+                raise ValueError("unsupported two step verification is found. check your env MF_TWO_STEP_VERIFICATION.")
+            self.send_to_element('//*[@name="otp_attempt"]', confirmation_code)
+            self.driver.find_element_by_xpath('//*[@type="submit"]').click()
+            self.wait.until(ec.presence_of_all_elements_located)
+            if self.driver.find_elements_by_id("home"):
+                logger.info("successfully logged in.")
+            else:
+                raise ValueError("failed to log in.")
+        # Old type of MoneyForward two step verifications
+        elif self.driver.find_elements_by_id("page-two-step-verifications"):
+            self.confirm_two_step_verification_param()
             if os.environ['MF_TWO_STEP_VERIFICATION'].lower() == "gmail":
                 logger.info("waiting confirmation code from Gmail...")
                 confirmation_code = self.get_confirmation_code_from_gmail(login_time)
@@ -123,6 +143,17 @@ class MoneyForward():
 
 
 ################## Two step verification ###################
+
+    def confirm_two_step_verification_param(self):
+        logger.info("two step verification is enabled.")
+        if not 'MF_TWO_STEP_VERIFICATION' in os.environ:
+            raise ValueError("env MF_TWO_STEP_VERIFICATION is not found.")
+
+    def get_confirmation_code_from_totp(self):
+        if not 'MF_TWO_STEP_VERIFICATION_TOTP_SECRET_KEY' in os.environ:
+            raise ValueError("env MF_TWO_STEP_VERIFICATION_TOTP_SECRET_KEY are not found.")
+        confirmation_code = pyotp.TOTP(os.getenv("MF_TWO_STEP_VERIFICATION_TOTP_SECRET_KEY")).now()
+        return confirmation_code
 
     def get_confirmation_code_from_gmail(self, sent_since):
         if not 'MF_TWO_STEP_VERIFICATION_GMAIL_ACCOUNT' in os.environ or not 'MF_TWO_STEP_VERIFICATION_GMAIL_APP_PASS' in os.environ:
