@@ -57,7 +57,7 @@ class MoneyForward():
         self.driver.find_element_by_xpath('//input[@type="submit"]').click()
         self.wait.until(ec.presence_of_all_elements_located)
 
-        if self.driver.find_elements_by_xpath('//div[@class="me-home"]'):
+        if self.driver.find_elements_by_id('page-home'):
             logger.info("successfully logged in.")
         # New type of MoneyForward two step verifications
         elif self.driver.current_url.startswith('https://id.moneyforward.com/two_factor_auth/totp'):
@@ -94,28 +94,26 @@ class MoneyForward():
     def portfolio(self):
         usdrate = self.usdrate()
         logger.info("USDJPY: " + str(usdrate))
-        self.driver.get('https://moneyforward.com/personal_assets/4') # 4 means "株式現物" for all user?
+        self.driver.get('https://moneyforward.com/bs/portfolio')
         self.wait.until(ec.presence_of_all_elements_located)
-        elements = self.driver.find_elements_by_xpath('//td[@class="mdc-data-table__cell me-data-table__cell me-data-table--asset-category__cell me-data-table__cell--asset-eq-name mdc-typography--body2"]/..')
+        elements = self.driver.find_elements_by_xpath('//*[@id="portfolio_det_eq"]/table/tbody/tr')
         for i in range(len(elements)):
             tds = elements[i].find_elements_by_tag_name('td')
-            name = tds[0].text
+            name = tds[1].text
             if name[0:1] == "#":
                 entry = name.split('-')
                 stock_price = self.stock_price(entry[1])
                 stock_count = int(entry[2])
                 logger.info(entry[0] + ": " + entry[1] + ' is ' + str(stock_price) + "USD (" + str(int(usdrate * stock_price)) + " JPY) x " + str(stock_count))
-                tds[7].find_element_by_xpath('div/button').click()
-                tds[7].find_element_by_xpath('div/div/ul/a').click()
-                self.wait.until(ec.presence_of_all_elements_located)
+                tds[11].find_element_by_tag_name('img').click()
+                det_value = tds[11].find_element_by_id('user_asset_det_value')
+                commit = tds[11].find_element_by_name('commit')
                 time.sleep(1)
-                det_value = self.driver.find_element_by_name('manual_assets[value]')
-                commit = self.driver.find_element_by_name('button')
                 self.send_to_element_direct(det_value, str(int(usdrate * stock_price) * stock_count))
                 commit.click()
                 time.sleep(1)
                 logger.info(entry[0] + " is updated.")
-                elements = self.driver.find_elements_by_xpath('//td[@class="mdc-data-table__cell me-data-table__cell me-data-table--asset-category__cell me-data-table__cell--asset-eq-name mdc-typography--body2"]/..') # avoid stale error
+                elements = self.driver.find_elements_by_xpath('//*[@id="portfolio_det_eq"]/table/tbody/tr') # avoid stale error
 
     def stock_price(self, tick):
         r = requests.get(f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={tick}&apikey={self.alphavantage_apikey}')
