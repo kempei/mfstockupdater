@@ -1,0 +1,320 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: MoneyForward Stock Updater
+
+Parameters:
+
+  MoneyForwardUsername:
+    Description: MoneyForward Username
+    Type: String
+
+  MoneyForwardPassword:
+    Description: MoneyForward Password
+    Type: String
+    NoEcho: True
+
+  MoneyForwardTotpSecretKey:
+    Description: Time-based OTPs Secret Key
+    Type: String
+    NoEcho: True
+
+  AlphavantageApiKey:
+    Description: https://www.alphavantage.co/support/#api-key
+    Type: String
+    NoEcho: True
+
+  DockerImage:
+    Type: String
+    Default: public.ecr.aws/mats/mfstockupdater
+
+  scheduleExpression:
+    Type: String
+    Default: cron(0 0 * * ? *)
+
+  vpcCidrBlock:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: The CIDR range for the VPC. This should be a valid private (RFC 1918) CIDR range.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: MoneyForward Credentials
+        Parameters:
+          - MoneyForwardUsername
+          - MoneyForwardPassword
+          - MoneyForwardTotpSecretKey
+      - Label:
+          default: Alphavantage Credentials
+        Parameters:
+          - AlphavantageApiKey
+      - Label:
+          default: Other Configurations
+        Parameters:
+          - DockerImage
+          - scheduleExpression
+          - vpcCidrBlock
+    ParameterLabels:
+      vpcCidrBlock:
+        default: VPC CIDR Block
+
+Resources:
+
+  Secret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AWS::StackName}'
+      SecretString: !Sub '{"username": "${MoneyForwardUsername}","password": "${MoneyForwardPassword}","totp_secret_key": "${MoneyForwardTotpSecretKey}","alphavantage_api_key": "${AlphavantageApiKey}"}'
+
+  ScheduledEvent:
+    Type: AWS::Events::Rule
+    Properties: 
+      ScheduleExpression: !Ref scheduleExpression
+      Targets: 
+        - Id: '1'
+          Input: '{}'
+          RoleArn: !GetAtt EventsRole.Arn
+          Arn: !GetAtt EcsCluster.Arn
+          EcsParameters:
+            LaunchType: FARGATE
+            NetworkConfiguration:
+              AwsVpcConfiguration: 
+                AssignPublicIp: ENABLED
+                SecurityGroups: 
+                  - !GetAtt SecurityGroup.GroupId
+                Subnets: 
+                  - !Ref PublicSubnet01
+                  - !Ref PublicSubnet02
+                  - !Ref PublicSubnet03
+            PlatformVersion: 1.4.0
+            TaskCount: 1
+            TaskDefinitionArn: !Ref TaskDefinition
+
+  EventsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ecsRunTask
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ecs:RunTask
+                Resource: !Ref TaskDefinition
+                Condition:
+                  ArnLike:
+                    ecs:cluster: !GetAtt EcsCluster.Arn
+              - Effect: Allow
+                Action: iam:PassRole
+                Resource: '*'
+                Condition:
+                  StringLike:
+                    iam:PassedToService: ecs-tasks.amazonaws.com
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: "-1"
+
+  EcsLogGroup: 
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+
+  EcsCluster:
+    Type: AWS::ECS::Cluster
+
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: SecretsManager
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref Secret
+              #- Effect: Allow
+              #  Action: kms:Decrypt
+              #  Resource: !Ref Secret
+
+  TaskDefinition: 
+    Type: AWS::ECS::TaskDefinition
+    Properties: 
+      RequiresCompatibilities: ['FARGATE']
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !Ref TaskExecutionRole
+      Cpu: 512
+      Memory: 1024
+      ContainerDefinitions: 
+        - Name: mfstockupdater
+          Image: !Ref DockerImage
+          Environment:
+            - Name: MF_TWO_STEP_VERIFICATION
+              Value: TOTP
+          Secrets:
+            - Name: MF_ID
+              ValueFrom: !Sub '${Secret}:username::'
+            - Name: MF_PASS
+              ValueFrom: !Sub '${Secret}:password::'
+            - Name: MF_TWO_STEP_VERIFICATION_TOTP_SECRET_KEY
+              ValueFrom: !Sub '${Secret}:totp_secret_key::'
+            - Name: ALPHAVANTAGE_API_KEY
+              ValueFrom: !Sub '${Secret}:alphavantage_api_key::'
+          Essential: true
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref vpcCidrBlock
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+      - Key: Name
+        Value: !Ref "AWS::StackName"
+
+  PublicSubnet01:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock:
+        Fn::Select:
+          - 0
+          - Fn::Cidr:
+              - !Ref vpcCidrBlock
+              - 6
+              - 8
+      AvailabilityZone:
+        Fn::Select:
+        - '0'
+        - Fn::GetAZs: !Ref AWS::Region
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: !Sub "${AWS::StackName}-PublicSubnet01"
+
+  PublicSubnet02:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock:
+        Fn::Select:
+          - 1
+          - Fn::Cidr:
+              - !Ref vpcCidrBlock
+              - 6
+              - 8
+      AvailabilityZone:
+        Fn::Select:
+        - '1'
+        - Fn::GetAZs: !Ref AWS::Region
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: !Sub "${AWS::StackName}-PublicSubnet02"
+
+  PublicSubnet03:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock:
+        Fn::Select:
+          - 2
+          - Fn::Cidr:
+              - !Ref vpcCidrBlock
+              - 6
+              - 8
+      AvailabilityZone:
+        Fn::Select:
+        - '2'
+        - Fn::GetAZs: !Ref AWS::Region
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: !Sub "${AWS::StackName}-PublicSubnet03"
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-igw"
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${AWS::StackName}-public-igw"
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation01:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet01
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetRouteTableAssociation02:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet02
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetRouteTableAssociation03:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet03
+      RouteTableId: !Ref PublicRouteTable
+
+#  PublicSubnetNetworkAclAssociation01:
+#    Type: AWS::EC2::SubnetNetworkAclAssociation
+#    Properties:
+#      SubnetId: !Ref PublicSubnet01
+#      NetworkAclId: !GetAtt VPC.DefaultNetworkAcl
+#
+#  PublicSubnetNetworkAclAssociation02:
+#    Type: AWS::EC2::SubnetNetworkAclAssociation
+#    Properties:
+#      SubnetId: !Ref PublicSubnet02
+#      NetworkAclId: !GetAtt VPC.DefaultNetworkAcl
+#
+#  PublicSubnetNetworkAclAssociation03:
+#    Type: AWS::EC2::SubnetNetworkAclAssociation
+#    Properties:
+#      SubnetId: !Ref PublicSubnet03
+#      NetworkAclId: !GetAtt VPC.DefaultNetworkAcl
