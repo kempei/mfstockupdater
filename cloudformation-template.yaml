@@ -2,7 +2,6 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: MoneyForward Stock Updater
 
 Parameters:
-
   MoneyForwardUsername:
     Description: MoneyForward Username
     Type: String
@@ -59,7 +58,6 @@ Metadata:
         default: VPC CIDR Block
 
 Resources:
-
   Secret:
     Type: AWS::SecretsManager::Secret
     Properties:
@@ -155,9 +153,6 @@ Resources:
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
                 Resource: !Ref Secret
-              #- Effect: Allow
-              #  Action: kms:Decrypt
-              #  Resource: !Ref Secret
 
   TaskDefinition: 
     Type: AWS::ECS::TaskDefinition
@@ -170,6 +165,7 @@ Resources:
       ContainerDefinitions: 
         - Name: mfstockupdater
           Image: !Ref DockerImage
+          Essential: true
           Environment:
             - Name: MF_TWO_STEP_VERIFICATION
               Value: TOTP
@@ -182,8 +178,12 @@ Resources:
               ValueFrom: !Sub '${Secret}:totp_secret_key::'
             - Name: ALPHAVANTAGE_API_KEY
               ValueFrom: !Sub '${Secret}:alphavantage_api_key::'
-          Essential: true
-
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref AWS::Region
+              awslogs-group: !Ref EcsLogGroup
+              awslogs-stream-prefix: stdout
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -300,21 +300,3 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnet03
       RouteTableId: !Ref PublicRouteTable
-
-#  PublicSubnetNetworkAclAssociation01:
-#    Type: AWS::EC2::SubnetNetworkAclAssociation
-#    Properties:
-#      SubnetId: !Ref PublicSubnet01
-#      NetworkAclId: !GetAtt VPC.DefaultNetworkAcl
-#
-#  PublicSubnetNetworkAclAssociation02:
-#    Type: AWS::EC2::SubnetNetworkAclAssociation
-#    Properties:
-#      SubnetId: !Ref PublicSubnet02
-#      NetworkAclId: !GetAtt VPC.DefaultNetworkAcl
-#
-#  PublicSubnetNetworkAclAssociation03:
-#    Type: AWS::EC2::SubnetNetworkAclAssociation
-#    Properties:
-#      SubnetId: !Ref PublicSubnet03
-#      NetworkAclId: !GetAtt VPC.DefaultNetworkAcl
