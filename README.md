@@ -46,3 +46,5 @@ MoneyForwardの登録メールアドレスから、二段階認証用の確認�
 
 ## Execution
 普通にDockerfileを元に作成されたDockerを実行すればOKです。
+
+[Public ECR Image](https://gallery.ecr.aws/mats/mfstockupdater)
