@@ -1,0 +1,37 @@
+version: 0.2
+# 参考: https://docs.aws.amazon.com/ja_jp/codepipeline/latest/userguide/ecs-cd-pipeline.html
+env:
+  secrets-manager:
+    DOCKERHUB_USER: arn:aws:secretsmanager:ap-northeast-1:$ACCOUNT_ID:secret:$SECRET_KEY:username
+    DOCKERHUB_PASS: arn:aws:secretsmanager:ap-northeast-1:$ACCOUNT_ID:secret:$SECRET_KEY:password
+phases:
+  pre_build:
+    commands:
+      - REPOSITORY_NAME=mfstockupdater
+      - ACCOUNT_ROOT=public.ecr.aws/h3b4x6x6
+      - REPOSITORY_URI=$ACCOUNT_ROOT/$REPOSITORY_NAME
+      - echo Logging in to Amazon ECR...
+      - aws --version
+      - aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ACCOUNT_ROOT
+      # Docker Hub へのログイン
+      - echo Logging in to Docker Hub...
+      - echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin
+      # タグ情報
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo Writing image definitions file...
+      - printf '[{"name":"%s","imageUri":"%s"}]' $REPOSITORY_NAME $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+artifacts:
+    files: imagedefinitions.json
