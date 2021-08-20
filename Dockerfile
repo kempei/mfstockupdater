@@ -1,4 +1,12 @@
-FROM joyzoursky/python-chromedriver:3.7-alpine3.8-selenium
+FROM python:3.9.6-alpine3.14
+
+# update apk repo
+RUN echo "http://dl-4.alpinelinux.org/alpine/v3.13/main" >> /etc/apk/repositories && \
+    echo "http://dl-4.alpinelinux.org/alpine/v3.13/community" >> /etc/apk/repositories
+
+# install chromedriver
+RUN apk add --update --no-cache \
+        chromium chromium-chromedriver
 
 ARG project_dir=/tmp/work
 RUN mkdir $project_dir
