@@ -23,7 +23,7 @@ Parameters:
 
   DockerImage:
     Type: String
-    Default: public.ecr.aws/mats/mfstockupdater
+    Default: public.ecr.aws/h3b4x6x6/mfstockupdater
 
   scheduleExpression:
     Type: String
