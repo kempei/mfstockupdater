@@ -45,6 +45,8 @@ MoneyForwardの登録メールアドレスから、二段階認証用の確認�
 - MF_TWO_STEP_VERIFICATION_GMAIL_APP_PASS: 転送先のGmailアカウントで発行したアプリケーション用のパスワード
 
 ## Execution
-普通にDockerfileを元に作成されたDockerを実行すればOKです。
+```
+$ docker run -e MF_ID -e MF_PASS -e ALPHAVANTAGE_API_KEY -it public.ecr.aws/h3b4x6x6/mfstockupdater
+```
 
-[Public ECR Image](https://gallery.ecr.aws/mats/mfstockupdater)
+[Public ECR Gallery](https://gallery.ecr.aws/h3b4x6x6/mfstockupdater)
