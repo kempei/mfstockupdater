@@ -15,6 +15,9 @@ import os, time, datetime
 import imaplib, email, re, pyotp, pytz
 
 class MoneyForward():
+    def __init__(self) -> None:
+        self.stock_price_cache:dict[str, float] = dict()
+
     def init(self):
         logger.info("selenium initializing...")
         options = webdriver.ChromeOptions()
@@ -116,11 +119,16 @@ class MoneyForward():
                 elements = self.driver.find_elements_by_xpath('//*[@id="portfolio_det_eq"]/table/tbody/tr') # avoid stale error
 
     def stock_price(self, tick):
-        r = requests.get(f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={tick}&apikey={self.alphavantage_apikey}')
-        if r.status_code != 200:
-            raise ConnectionRefusedError()
-        data = r.json()
-        return float(data['Global Quote']['05. price'])
+        if not tick in self.stock_price_cache:
+            for retry in range(3):
+                r = requests.get(f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={tick}&apikey={self.alphavantage_apikey}')
+                if r.status_code != 200:
+                    raise ConnectionRefusedError()
+                data = r.json()
+                if 'Global Quote' in data:
+                    self.stock_price_cache[tick] = float(data['Global Quote']['05. price'])
+                    break
+        return self.stock_price_cache[tick]
 
     def usdrate(self):
         r = requests.get(f'https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=JPY&apikey={self.alphavantage_apikey}')
