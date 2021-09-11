@@ -109,7 +109,7 @@ class MoneyForward():
                 stock_price = self.stock_price(entry[1])
                 stock_count = int(entry[2])
                 logger.info(entry[0] + ": " + entry[1] + ' is ' + str(stock_price) + "USD (" + str(int(usdrate * stock_price)) + " JPY) x " + str(stock_count))
-                tds[11].find_element_by_tag_name('img').click()
+                tds[11].find_element_by_tag_name('a').click()
                 det_value = tds[11].find_element_by_id('user_asset_det_value')
                 commit = tds[11].find_element_by_name('commit')
                 time.sleep(1)
