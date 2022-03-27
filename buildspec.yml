@@ -1,9 +1,9 @@
 version: 0.2
 # 参考: https://docs.aws.amazon.com/ja_jp/codepipeline/latest/userguide/ecs-cd-pipeline.html
 env:
-  secrets-manager:
-    DOCKERHUB_USER: arn:aws:secretsmanager:ap-northeast-1:$ACCOUNT_ID:secret:$SECRET_KEY:username
-    DOCKERHUB_PASS: arn:aws:secretsmanager:ap-northeast-1:$ACCOUNT_ID:secret:$SECRET_KEY:password
+  parameter-store:
+    DOCKERHUB_USER: "dockerhub_user"
+    DOCKERHUB_PASS: "dockerhub_pass"
 phases:
   pre_build:
     commands:
