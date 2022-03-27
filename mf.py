@@ -15,24 +15,28 @@ import os, time, datetime
 import imaplib, email, re, pyotp, pytz
 
 class MoneyForward():
+    def __init__(self) -> None:
+        self.stock_price_cache:dict[str, float] = dict()
+
     def init(self):
         logger.info("selenium initializing...")
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
-        options.add_argument("--window-size=1280x3200")
+        options.add_argument("--window-size=900x1200")
         options.add_argument("--disable-application-cache")
         options.add_argument("--disable-infobars")
         options.add_argument("--no-sandbox")
         options.add_argument("--hide-scrollbars")
         options.add_argument("--v=99")
-        options.add_argument("--single-process")
         options.add_argument("--ignore-certificate-errors")
         options.add_argument("--homedir=/tmp")
         options.add_argument('--user-agent=Mozilla/5.0')
+        options.add_argument('--disable-dev-shm-usage')
         options.add_experimental_option("prefs", {'profile.managed_default_content_settings.images':2})
         self.driver = webdriver.Chrome(options=options)
         self.wait = WebDriverWait(self.driver, 5)
+        self.driver.implicitly_wait(10)
         if not 'ALPHAVANTAGE_API_KEY' in os.environ:
             raise ValueError("env ALPHAVANTAGE_API_KEY is not found.")
         self.alphavantage_apikey = os.environ['ALPHAVANTAGE_API_KEY']
@@ -105,7 +109,8 @@ class MoneyForward():
                 stock_price = self.stock_price(entry[1])
                 stock_count = int(entry[2])
                 logger.info(entry[0] + ": " + entry[1] + ' is ' + str(stock_price) + "USD (" + str(int(usdrate * stock_price)) + " JPY) x " + str(stock_count))
-                tds[11].find_element_by_tag_name('img').click()
+                img = tds[11].find_element_by_tag_name('img')
+                self.driver.execute_script("arguments[0].click();", img)
                 det_value = tds[11].find_element_by_id('user_asset_det_value')
                 commit = tds[11].find_element_by_name('commit')
                 time.sleep(1)
@@ -116,11 +121,16 @@ class MoneyForward():
                 elements = self.driver.find_elements_by_xpath('//*[@id="portfolio_det_eq"]/table/tbody/tr') # avoid stale error
 
     def stock_price(self, tick):
-        r = requests.get(f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={tick}&apikey={self.alphavantage_apikey}')
-        if r.status_code != 200:
-            raise ConnectionRefusedError()
-        data = r.json()
-        return float(data['Global Quote']['05. price'])
+        if not tick in self.stock_price_cache:
+            for retry in range(3):
+                r = requests.get(f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={tick}&apikey={self.alphavantage_apikey}')
+                if r.status_code != 200:
+                    raise ConnectionRefusedError()
+                data = r.json()
+                if 'Global Quote' in data:
+                    self.stock_price_cache[tick] = float(data['Global Quote']['05. price'])
+                    break
+        return self.stock_price_cache[tick]
 
     def usdrate(self):
         r = requests.get(f'https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=JPY&apikey={self.alphavantage_apikey}')
