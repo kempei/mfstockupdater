@@ -50,18 +50,18 @@ class MoneyForward():
         
         self.driver.get('https://moneyforward.com/sign_in')
         self.wait.until(ec.presence_of_all_elements_located)
-        self.driver.find_element_by_xpath('//img[@alt="email"]').click()
+        self.driver.find_element(by=By.XPATH, value='//img[@alt="email"]').click()
         self.wait.until(ec.presence_of_all_elements_located)
 
         login_time = datetime.datetime.now(pytz.timezone('Asia/Tokyo'))
         self.send_to_element('//input[@type="email"]', mf_id)
-        self.driver.find_element_by_xpath('//input[@type="submit"]').click()
+        self.driver.find_element(by=By.XPATH, value='//input[@type="submit"]').click()
         self.wait.until(ec.presence_of_all_elements_located)
         self.send_to_element('//input[@type="password"]', mf_pass)
-        self.driver.find_element_by_xpath('//input[@type="submit"]').click()
+        self.driver.find_element(by=By.XPATH, value='//input[@type="submit"]').click()
         self.wait.until(ec.presence_of_all_elements_located)
 
-        if self.driver.find_elements_by_id('page-home'):
+        if self.driver.find_elements(by=By.ID, value='page-home'):
             logger.info("successfully logged in.")
         # New type of MoneyForward two step verifications
         elif self.driver.current_url.startswith('https://id.moneyforward.com/two_factor_auth/totp'):
@@ -71,14 +71,14 @@ class MoneyForward():
             else:
                 raise ValueError("unsupported two step verification is found. check your env MF_TWO_STEP_VERIFICATION.")
             self.send_to_element('//*[@name="otp_attempt"]', confirmation_code)
-            self.driver.find_element_by_xpath('//*[@type="submit"]').click()
+            self.driver.find_element(by=By.XPATH, value='//*[@type="submit"]').click()
             self.wait.until(ec.presence_of_all_elements_located)
-            if self.driver.find_elements_by_id("home"):
+            if self.driver.find_elements(by=By.ID, value="home"):
                 logger.info("successfully logged in.")
             else:
                 raise ValueError("failed to log in.")
         # Old type of MoneyForward two step verifications
-        elif self.driver.find_elements_by_id("page-two-step-verifications"):
+        elif self.driver.find_elements(by=By.ID, value="page-two-step-verifications"):
             self.confirm_two_step_verification_param()
             if os.environ['MF_TWO_STEP_VERIFICATION'].lower() == "gmail":
                 logger.info("waiting confirmation code from Gmail...")
@@ -88,7 +88,7 @@ class MoneyForward():
             self.driver.get('https://moneyforward.com/users/two_step_verifications/verify/{confirmation_code}'.format(confirmation_code=confirmation_code))
             self.wait.until(ec.presence_of_all_elements_located)
             self.driver.get('https://moneyforward.com/users/sign_in')
-            if self.driver.find_elements_by_id("home"):
+            if self.driver.find_elements(by=By.ID, value="home"):
                 logger.info("successfully logged in.")
             else:
                 raise ValueError("failed to log in.")
@@ -100,25 +100,25 @@ class MoneyForward():
         logger.info("USDJPY: " + str(usdrate))
         self.driver.get('https://moneyforward.com/bs/portfolio')
         self.wait.until(ec.presence_of_all_elements_located)
-        elements = self.driver.find_elements_by_xpath('//*[@id="portfolio_det_eq"]/table/tbody/tr')
+        elements = self.driver.find_elements(by=By.XPATH, value='//*[@id="portfolio_det_eq"]/table/tbody/tr')
         for i in range(len(elements)):
-            tds = elements[i].find_elements_by_tag_name('td')
+            tds = elements[i].find_elements(by=By.TAG_NAME, value='td')
             name = tds[1].text
             if name[0:1] == "#":
                 entry = name.split('-')
                 stock_price = self.stock_price(entry[1])
                 stock_count = int(entry[2])
                 logger.info(entry[0] + ": " + entry[1] + ' is ' + str(stock_price) + "USD (" + str(int(usdrate * stock_price)) + " JPY) x " + str(stock_count))
-                img = tds[11].find_element_by_tag_name('img')
+                img = tds[11].find_element(by=By.TAG_NAME, value='img')
                 self.driver.execute_script("arguments[0].click();", img)
-                det_value = tds[11].find_element_by_id('user_asset_det_value')
-                commit = tds[11].find_element_by_name('commit')
+                det_value = tds[11].find_element(by=By.ID, value='user_asset_det_value')
+                commit = tds[11].find_element(by=By.NAME, value='commit')
                 time.sleep(1)
                 self.send_to_element_direct(det_value, str(int(usdrate * stock_price) * stock_count))
                 commit.click()
                 time.sleep(1)
                 logger.info(entry[0] + " is updated.")
-                elements = self.driver.find_elements_by_xpath('//*[@id="portfolio_det_eq"]/table/tbody/tr') # avoid stale error
+                elements = self.driver.find_elements(by=By.XPATH, value='//*[@id="portfolio_det_eq"]/table/tbody/tr') # avoid stale error
 
     def stock_price(self, tick):
         if not tick in self.stock_price_cache:
@@ -214,7 +214,7 @@ class MoneyForward():
         print(html)
 
     def send_to_element(self, xpath, keys):
-        element = self.driver.find_element_by_xpath(xpath)
+        element = self.driver.find_element(by=By.XPATH, value=xpath)
         element.clear()
         logger.debug("[send_to_element] " + xpath)
         element.send_keys(keys)
