@@ -1,8 +1,8 @@
-FROM python:3.9.6-alpine3.14
+FROM python:3.9.13-alpine3.16
 
 # update apk repo
-RUN echo "http://dl-4.alpinelinux.org/alpine/v3.13/main" >> /etc/apk/repositories && \
-    echo "http://dl-4.alpinelinux.org/alpine/v3.13/community" >> /etc/apk/repositories
+RUN echo "http://dl-4.alpinelinux.org/alpine/v3.16/main" >> /etc/apk/repositories && \
+    echo "http://dl-4.alpinelinux.org/alpine/v3.16/community" >> /etc/apk/repositories
 
 # install chromedriver
 RUN apk add --update --no-cache \
