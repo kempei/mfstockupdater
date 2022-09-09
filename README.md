@@ -46,7 +46,7 @@ MoneyForwardの登録メールアドレスから、二段階認証用の確認�
 
 ## Execution
 ```
-$ docker run -e MF_ID -e MF_PASS -e ALPHAVANTAGE_API_KEY -it public.ecr.aws/h3b4x6x6/mfstockupdater
+$ docker run -e MF_ID -e MF_PASS -e ALPHAVANTAGE_API_KEY -it public.ecr.aws/kempei/mfstockupdater
 ```
 
-[Public ECR Gallery](https://gallery.ecr.aws/h3b4x6x6/mfstockupdater)
+[Public ECR Gallery](https://gallery.ecr.aws/kempei/mfstockupdater)
