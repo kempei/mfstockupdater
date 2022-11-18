@@ -133,12 +133,11 @@ class MoneyForward():
         return self.stock_price_cache[tick]
 
     def usdrate(self):
-        r = requests.get(f'https://www.alphavantage.co/query?function=FX_INTRADAY&from_symbol=USD&to_symbol=JPY&interval=5min&apikey={self.alphavantage_apikey}')
+        r = requests.get(f'https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=JPY&apikey={self.alphavantage_apikey}')
         if r.status_code != 200:
             raise ConnectionRefusedError()
         data = r.json()
-        last_refreshed_time = data['Meta Data']['4. Last Refreshed']
-        return float(data['Time Series FX (5min)'][last_refreshed_time]['4. close'])
+        return float(data['Realtime Currency Exchange Rate']['5. Exchange Rate'])
 
     def close(self):
         try:
