@@ -71,7 +71,7 @@ class MoneyForward():
             else:
                 raise ValueError("unsupported two step verification is found. check your env MF_TWO_STEP_VERIFICATION.")
             self.send_to_element('//*[@name="otp_attempt"]', confirmation_code)
-            self.driver.find_element(by=By.XPATH, value='//*[@type="submit"]').click()
+            self.driver.find_element(by=By.XPATH, value='//button').click()
             self.wait.until(ec.presence_of_all_elements_located)
             if self.driver.find_elements(by=By.ID, value="home"):
                 logger.info("successfully logged in.")
