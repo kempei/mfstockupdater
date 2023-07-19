@@ -54,11 +54,11 @@ class MoneyForward():
 
         login_time = datetime.datetime.now(pytz.timezone('Asia/Tokyo'))
         self.send_to_element('//input[@type="email"]', mf_id)
-        self.driver.find_element(by=By.XPATH, value='//input[@type="submit"]').click()
+        self.driver.find_element(by=By.XPATH, value='//button[@id="submitto"]').click()
         self.wait.until(ec.presence_of_all_elements_located)
         time.sleep(3)
         self.send_to_element('//input[@type="password"]', mf_pass)
-        self.driver.find_element(by=By.XPATH, value='//input[@type="submit"]').click()
+        self.driver.find_element(by=By.XPATH, value='//button[@id="submitto"]').click()
         self.wait.until(ec.presence_of_all_elements_located)
 
         if self.driver.find_elements(by=By.ID, value='page-home'):
@@ -71,7 +71,9 @@ class MoneyForward():
             else:
                 raise ValueError("unsupported two step verification is found. check your env MF_TWO_STEP_VERIFICATION.")
             self.send_to_element('//*[@name="otp_attempt"]', confirmation_code)
-            self.driver.find_element(by=By.XPATH, value='//button').click()
+            self.driver.find_element(by=By.XPATH, value='//button[@id="submitto"]').click()
+            self.wait.until(ec.presence_of_all_elements_located)
+            self.driver.find_element(by=By.XPATH, value='//a[contains(@class,"registerLater")]').click()
             self.wait.until(ec.presence_of_all_elements_located)
             if self.driver.find_elements(by=By.ID, value="home"):
                 logger.info("successfully logged in.")
