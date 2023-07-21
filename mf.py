@@ -73,7 +73,7 @@ class MoneyForward():
             self.send_to_element('//*[@name="otp_attempt"]', confirmation_code)
             self.driver.find_element(by=By.XPATH, value='//button[@id="submitto"]').click()
             self.wait.until(ec.presence_of_all_elements_located)
-            self.driver.find_element(by=By.XPATH, value='//a[contains(@class,"registerLater")]').click()
+            self.driver.find_element(by=By.XPATH, value='//div[contains(@class,"registerLaterWrapper")]/a').click()
             self.wait.until(ec.presence_of_all_elements_located)
             if self.driver.find_elements(by=By.ID, value="home"):
                 logger.info("successfully logged in.")
