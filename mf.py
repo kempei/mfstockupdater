@@ -73,11 +73,14 @@ class MoneyForward():
             self.send_to_element('//*[@name="otp_attempt"]', confirmation_code)
             self.driver.find_element(by=By.XPATH, value='//button[@id="submitto"]').click()
             self.wait.until(ec.presence_of_all_elements_located)
-            self.driver.find_element(by=By.XPATH, value='//div[contains(@class,"registerLaterWrapper")]/a').click()
-            self.wait.until(ec.presence_of_all_elements_located)
+            if self.driver.find_elements(by=By.XPATH, value='//div[contains(@class,"registerLaterWrapper")]/a'):
+                logger.info("recognized as unknown devise and selecting register later.")
+                self.driver.find_element(by=By.XPATH, value='//div[contains(@class,"registerLaterWrapper")]/a').click()
+                self.wait.until(ec.presence_of_all_elements_located)
             if self.driver.find_elements(by=By.ID, value="home"):
                 logger.info("successfully logged in.")
             else:
+                logger.debug(self.driver.current_url)
                 raise ValueError("failed to log in.")
         # Old type of MoneyForward two step verifications
         elif self.driver.find_elements(by=By.ID, value="page-two-step-verifications"):
