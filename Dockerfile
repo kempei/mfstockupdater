@@ -10,13 +10,14 @@ ADD requirements.txt $project_dir
 WORKDIR $project_dir
 
 RUN apk add --no-cache --virtual .build-deps \
-    chromium \
-    chromium-chromedriver \
     gcc \
     python3-dev \
     musl-dev \
     libffi-dev \
     build-base && \
+    apk add --no-cache \
+    chromium \
+    chromium-chromedriver && \
     pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
     apk del --no-cache .build-deps && \
