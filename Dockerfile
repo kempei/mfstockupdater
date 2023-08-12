@@ -4,16 +4,14 @@ FROM python:3.11.4-alpine3.18
 RUN echo "http://dl-4.alpinelinux.org/alpine/v3.18/main" >> /etc/apk/repositories && \
     echo "http://dl-4.alpinelinux.org/alpine/v3.18/community" >> /etc/apk/repositories
 
-# install chromedriver
-RUN apk add --no-cache \
-    chromium chromium-chromedriver
-
 ARG project_dir=/tmp/work
 RUN mkdir $project_dir
 ADD requirements.txt $project_dir
 WORKDIR $project_dir
 
 RUN apk add --no-cache --virtual .build-deps \
+    chromium \
+    chromium-chromedriver \
     gcc \
     python3-dev \
     musl-dev \
