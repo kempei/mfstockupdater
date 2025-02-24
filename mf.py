@@ -164,7 +164,16 @@ class MoneyForward:
     def get_confirmation_code_from_totp(self):
         if not "MF_TWO_STEP_VERIFICATION_TOTP_SECRET_KEY" in os.environ:
             raise ValueError("env MF_TWO_STEP_VERIFICATION_TOTP_SECRET_KEY are not found.")
-        confirmation_code = pyotp.TOTP(os.getenv("MF_TWO_STEP_VERIFICATION_TOTP_SECRET_KEY")).now()
+        secret_key = os.getenv("MF_TWO_STEP_VERIFICATION_TOTP_SECRET_KEY")
+        # 空白を取り除く
+        secret_key = secret_key.replace(" ", "")
+        # 改行を取り除く
+        secret_key = secret_key.replace("\n", "")
+        # タブを取り除く
+        secret_key = secret_key.replace("\t", "")
+        # 改行を取り除く
+        secret_key = secret_key.replace("\r", "")
+        confirmation_code = pyotp.TOTP(secret_key).now()
         return confirmation_code
 
     def get_confirmation_code_from_gmail(self, sent_since):
