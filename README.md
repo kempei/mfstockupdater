@@ -26,7 +26,7 @@ MoneyForwardで二段階認証を有効にしている場合には、以下の�
 
 #### Time-based OTPs
 MoneyForward IDで「[二段階認証の設定](https://id.moneyforward.com/two_factor_auth_setting)」を行います。
-二段階認証を有効にする際に表示される32桁 (4桁×8) のシークレットキーを控えておきます。
+二段階認証を有効にする際にQRコードと共に表示される32桁 (4桁×8) のシークレットキーを控えておきます。
 
 以下の環境変数を設定します。
 - MF_TWO_STEP_VERIFICATION: "TOTP"と指定
