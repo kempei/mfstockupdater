@@ -11,10 +11,13 @@ import requests
 import os, time, datetime
 import imaplib, email, re, pyotp, pytz
 
+from stock_provider import create_provider
+
 
 class MoneyForward:
     def __init__(self) -> None:
-        self.stock_price_cache: dict[str, float] = dict()
+        # 株価・為替プロバイダーを環境変数に基づいて初期化
+        self.provider = create_provider()
 
     def init(self):
         logger.info("selenium initializing...")
@@ -35,9 +38,6 @@ class MoneyForward:
         self.driver = webdriver.Chrome(options=options)
         self.wait = WebDriverWait(self.driver, 5)
         self.driver.implicitly_wait(10)
-        if not "ALPHAVANTAGE_API_KEY" in os.environ:
-            raise ValueError("env ALPHAVANTAGE_API_KEY is not found.")
-        self.alphavantage_apikey = os.environ["ALPHAVANTAGE_API_KEY"]
 
     def login(self):
         self.driver.execute_script("window.open()")
@@ -101,7 +101,7 @@ class MoneyForward:
             raise ValueError("failed to log in.")
 
     def portfolio(self):
-        usdrate = self.usdrate()
+        usdrate = self.provider.usdrate()
         logger.info("USDJPY: " + str(usdrate))
         self.driver.get("https://moneyforward.com/bs/portfolio")
         self.wait.until(ec.presence_of_all_elements_located)
@@ -111,7 +111,7 @@ class MoneyForward:
             name = tds[1].text
             if name[0:1] == "#":
                 entry = name.split("-")
-                stock_price = self.stock_price(entry[1])
+                stock_price = self.provider.stock_price(entry[1])
                 stock_count = int(entry[2])
                 logger.info(entry[0] + ": " + entry[1] + " is " + str(stock_price) + "USD (" + str(int(usdrate * stock_price)) + " JPY) x " + str(stock_count))
                 img = tds[11].find_element(by=By.TAG_NAME, value="img")
@@ -125,24 +125,7 @@ class MoneyForward:
                 logger.info(entry[0] + " is updated.")
                 elements = self.driver.find_elements(by=By.XPATH, value='//*[@id="portfolio_det_eq"]/table/tbody/tr')  # avoid stale error
 
-    def stock_price(self, tick):
-        if not tick in self.stock_price_cache:
-            for retry in range(3):
-                r = requests.get(f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={tick}&apikey={self.alphavantage_apikey}")
-                if r.status_code != 200:
-                    raise ConnectionRefusedError()
-                data = r.json()
-                if "Global Quote" in data:
-                    self.stock_price_cache[tick] = float(data["Global Quote"]["05. price"])
-                    break
-        return self.stock_price_cache[tick]
 
-    def usdrate(self):
-        r = requests.get(f"https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=JPY&apikey={self.alphavantage_apikey}")
-        if r.status_code != 200:
-            raise ConnectionRefusedError()
-        data = r.json()
-        return float(data["Realtime Currency Exchange Rate"]["5. Exchange Rate"])
 
     def close(self):
         try:

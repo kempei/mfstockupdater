@@ -15,11 +15,17 @@ MoneyForwardで米ドル建て外国株式の現物資産を前取引日の終�
 株価/為替取得のため、AlphavantageのAPIを使っています。以下からご自身のAlphavantageのAPIキーを取得しておきます。
 - https://www.alphavantage.co/support/#api-key
 
+### Financial Modeling Prep (FMP) - オプション
+AlphaVantageの代わりにFMPを株価/為替プロバイダーとして使用できます。以下からAPIキーを取得しておきます。
+- https://site.financialmodelingprep.com/
+
 ### Environment Variables
 mf.pyでは以下の環境変数を用います。
 - MF_ID: MoneyForwardのユーザ名
 - MF_PASS: MoneyForwardのパスワード
-- ALPHAVANTAGE_API_KEY: AlphavantageのAPIKEY
+- ALPHAVANTAGE_API_KEY: AlphavantageのAPIKEY（STOCK_PROVIDERがalphavantageの場合に必要）
+- STOCK_PROVIDER: 株価プロバイダーの選択（"alphavantage" または "fmp"、デフォルト: "alphavantage"）
+- FMP_API_KEY: Financial Modeling PrepのAPIKEY（STOCK_PROVIDERがfmpの場合に必要）
 
 ### Two Step Verification
 MoneyForwardで二段階認証を有効にしている場合には、以下のオプションを有効にします。
@@ -45,8 +51,14 @@ MoneyForwardの登録メールアドレスから、二段階認証用の確認�
 - MF_TWO_STEP_VERIFICATION_GMAIL_APP_PASS: 転送先のGmailアカウントで発行したアプリケーション用のパスワード
 
 ## Execution
+### AlphaVantage（デフォルト）
 ```
 $ docker run -e MF_ID -e MF_PASS -e ALPHAVANTAGE_API_KEY -it public.ecr.aws/kempei/mfstockupdater
+```
+
+### Financial Modeling Prep (FMP)
+```
+$ docker run -e MF_ID -e MF_PASS -e STOCK_PROVIDER=fmp -e FMP_API_KEY -it public.ecr.aws/kempei/mfstockupdater
 ```
 
 [Public ECR Gallery](https://gallery.ecr.aws/kempei/mfstockupdater)

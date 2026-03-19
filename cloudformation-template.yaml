@@ -21,6 +21,20 @@ Parameters:
     Type: String
     NoEcho: True
 
+  StockProvider:
+    Description: 株価プロバイダー (alphavantage または fmp)
+    Type: String
+    Default: alphavantage
+    AllowedValues:
+      - alphavantage
+      - fmp
+
+  FmpApiKey:
+    Description: Financial Modeling Prep APIキー (StockProviderがfmpの場合に必要)
+    Type: String
+    NoEcho: True
+    Default: ""
+
   DockerImage:
     Type: String
     Default: public.ecr.aws/h3b4x6x6/mfstockupdater
@@ -44,9 +58,11 @@ Metadata:
           - MoneyForwardPassword
           - MoneyForwardTotpSecretKey
       - Label:
-          default: Alphavantage Credentials
+          default: Stock Provider Settings
         Parameters:
+          - StockProvider
           - AlphavantageApiKey
+          - FmpApiKey
       - Label:
           default: Other Configurations
         Parameters:
@@ -62,7 +78,7 @@ Resources:
     Type: AWS::SecretsManager::Secret
     Properties:
       Name: !Sub '${AWS::StackName}'
-      SecretString: !Sub '{"username": "${MoneyForwardUsername}","password": "${MoneyForwardPassword}","totp_secret_key": "${MoneyForwardTotpSecretKey}","alphavantage_api_key": "${AlphavantageApiKey}"}'
+      SecretString: !Sub '{"username": "${MoneyForwardUsername}","password": "${MoneyForwardPassword}","totp_secret_key": "${MoneyForwardTotpSecretKey}","alphavantage_api_key": "${AlphavantageApiKey}","fmp_api_key": "${FmpApiKey}"}'
 
   ScheduledEvent:
     Type: AWS::Events::Rule
@@ -169,6 +185,8 @@ Resources:
           Environment:
             - Name: MF_TWO_STEP_VERIFICATION
               Value: TOTP
+            - Name: STOCK_PROVIDER
+              Value: !Ref StockProvider
           Secrets:
             - Name: MF_ID
               ValueFrom: !Sub '${Secret}:username::'
@@ -178,6 +196,8 @@ Resources:
               ValueFrom: !Sub '${Secret}:totp_secret_key::'
             - Name: ALPHAVANTAGE_API_KEY
               ValueFrom: !Sub '${Secret}:alphavantage_api_key::'
+            - Name: FMP_API_KEY
+              ValueFrom: !Sub '${Secret}:fmp_api_key::'
           LogConfiguration:
             LogDriver: awslogs
             Options:
