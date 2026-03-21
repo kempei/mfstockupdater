@@ -2,6 +2,7 @@ from logzero import logger
 import logzero
 
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
@@ -34,8 +35,9 @@ class MoneyForward:
         options.add_argument("--ignore-certificate-errors")
         options.add_argument("--blink-settings=imagesEnabled=false")
         options.add_argument("--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36")
-        options.binary_location = "/usr/bin/chromium-browser"
-        self.driver = webdriver.Chrome(options=options)
+        options.binary_location = os.environ.get("CHROME_BINARY", "/usr/bin/chromium-browser")
+        service = Service(executable_path=os.environ.get("CHROMEDRIVER_PATH", "/usr/bin/chromedriver"))
+        self.driver = webdriver.Chrome(options=options, service=service)
         self.wait = WebDriverWait(self.driver, 5)
         self.driver.implicitly_wait(10)
 
@@ -120,7 +122,7 @@ class MoneyForward:
                 commit = tds[11].find_element(by=By.NAME, value="commit")
                 time.sleep(1)
                 self.send_to_element_direct(det_value, str(int(usdrate * stock_price) * stock_count))
-                commit.click()
+                self.driver.execute_script("arguments[0].click();", commit)
                 time.sleep(1)
                 logger.info(entry[0] + " is updated.")
                 elements = self.driver.find_elements(by=By.XPATH, value='//*[@id="portfolio_det_eq"]/table/tbody/tr')  # avoid stale error
@@ -218,9 +220,20 @@ class MoneyForward:
         element.send_keys(keys)
 
     def send_to_element_direct(self, element, keys):
-        element.clear()
+        self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
+        time.sleep(0.5)
         logger.debug("[send_to_element] " + element.get_attribute("id"))
-        element.send_keys(keys)
+        try:
+            element.clear()
+            element.send_keys(keys)
+        except Exception:
+            # フォームが非表示の場合はJavaScriptで直接値をセット
+            self.driver.execute_script(
+                "arguments[0].value = arguments[1];"
+                "arguments[0].dispatchEvent(new Event('input', {bubbles:true}));"
+                "arguments[0].dispatchEvent(new Event('change', {bubbles:true}));",
+                element, keys
+            )
 
 
 if __name__ == "__main__":

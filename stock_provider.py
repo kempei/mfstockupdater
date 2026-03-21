@@ -59,7 +59,7 @@ class AlphaVantageProvider(StockProvider):
 class FMPProvider(StockProvider):
     """Financial Modeling Prep APIを使用した株価・為替データプロバイダー"""
 
-    BASE_URL = "https://financialmodelingprep.com/v3"
+    BASE_URL = "https://financialmodelingprep.com/stable"
 
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -69,7 +69,7 @@ class FMPProvider(StockProvider):
         if tick not in self.stock_price_cache:
             for retry in range(3):
                 r = requests.get(
-                    f"{self.BASE_URL}/quote-short/{tick}?apikey={self.api_key}"
+                    f"{self.BASE_URL}/quote-short?symbol={tick}&apikey={self.api_key}"
                 )
                 if r.status_code != 200:
                     raise ConnectionRefusedError(
@@ -84,22 +84,15 @@ class FMPProvider(StockProvider):
 
     def usdrate(self) -> float:
         r = requests.get(
-            f"{self.BASE_URL}/fx/USDJPY?apikey={self.api_key}"
+            f"{self.BASE_URL}/quote?symbol=USDJPY&apikey={self.api_key}"
         )
         if r.status_code != 200:
             raise ConnectionRefusedError(
                 f"FMP為替APIリクエスト失敗: ステータスコード {r.status_code}"
             )
         data = r.json()
-        if isinstance(data, list) and len(data) > 0:
-            # FMP FXレスポンスの bidとaskの中間値を使用
-            bid = float(data[0].get("bid", 0))
-            ask = float(data[0].get("ask", 0))
-            if bid > 0 and ask > 0:
-                return (bid + ask) / 2
-            # bid/askがない場合はpriceフィールドを使用
-            if "price" in data[0]:
-                return float(data[0]["price"])
+        if isinstance(data, list) and len(data) > 0 and "price" in data[0]:
+            return float(data[0]["price"])
         raise ValueError("FMP APIからUSD/JPY為替レートを取得できませんでした")
 
 
