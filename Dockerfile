@@ -31,5 +31,6 @@ RUN apk add --no-cache --virtual .build-deps \
     rm -Rf /root/.cache/
 
 ADD mf.py $project_dir
+ADD stock_provider.py $project_dir
 
 CMD [ "python", "-u", "/tmp/work/mf.py" ]
